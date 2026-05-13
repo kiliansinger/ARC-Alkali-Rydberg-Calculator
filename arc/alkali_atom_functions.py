@@ -2679,7 +2679,50 @@ class AlkaliAtom(object):
                 ms = mj - ml
                 sumOverMl += (ml + gs * ms) * abs(CG(l, ml, s, ms, j, mj)) ** 2
         return prefactor * sumOverMl
+        
+    def getZeemanEnergyShiftOffDiagonal(
+        self,
+        l: int,
+        j1: float,
+        mj1: float,
+        j2: float,
+        mj2: float,
+        magneticFieldBz: float,
+        s: float = 0.5,
+    ) -> float:
+        r"""
+            Retuns off diagonal linear (paramagnetic) Zeeman shift.
 
+            :math:`\mathcal{H}_P=\frac{\mu_B B_z}{\hbar}(\hat{L}_{\rm z}+\
+            g_{\rm S}S_{\rm z})`
+
+            Args:
+                l (int): orbital angular momentum
+                j1 (float): total angular momentum of first state
+                mj1 (float): projection of total angular momentum of first state along z-axis
+                j2 (float): total angular momentum of second state
+                mj2 (float): projection of total angular momentum of second state along z-axis
+                magneticFieldBz (float): applied magnetic field (along  z-axis
+                    only) in units of T (Tesla)
+                s (float): optional, total spin angular momentum of state.
+                    By default 0.5 for Alkali atoms.
+
+            Returns:
+                float: energy offset of the state (in J)
+        """
+        prefactor = physical_constants["Bohr magneton"][0] * magneticFieldBz
+        gs = -physical_constants["electron g factor"][0]
+        sumOverMl = 0
+
+        for ml1 in np.linspace(mj1 - s, mj1 + s, round(2 * s + 1)):
+            for ml2 in np.linspace(mj2 - s, mj2 + s, round(2 * s + 1)):
+                if abs(ml1) <= l + 0.1 and abs(ml2) <= l + 0.1:
+                    ms1 = mj1 - ml1
+                    ms2 = mj2 - ml2
+                    if(ms1==ms2 and ml1==ml2):
+                        sumOverMl += (ml1 + gs * ms1) * CG(l, ml1, s, ms1, j1, mj1)*CG(l, ml1, s, ms1, j2, mj2)
+        return prefactor * sumOverMl
+    
     def _getRadialDipoleSemiClassical(
         self,
         n1: int,

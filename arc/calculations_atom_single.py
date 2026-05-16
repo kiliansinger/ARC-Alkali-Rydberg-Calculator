@@ -868,8 +868,8 @@ class StarkMap:
                             s=self.s
                         )/ C_h* 1.0e-9
 
-                    self.mat3[jj][ii] = coupling
-                    self.mat3[ii][jj] = coupling
+                    self.mat3[jj][ii] = coupling2
+                    self.mat3[ii][jj] = coupling2
 
         if progressOutput:
             print("\n")

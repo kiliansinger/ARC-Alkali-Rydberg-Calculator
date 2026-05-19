@@ -584,15 +584,7 @@ class StarkMap:
             off-diagonal elements of Stark-matrix divided by electric
             field value. To get off diagonal elemements multiply this matrix
             with electric field value. Full Stark matrix is obtained as
-            `fullStarkMatrix` = :obj:`mat1` + :obj:`mat2` *`eField` + :obj:`mat3`. Calculated by
-            :obj:`defineBasis` in the basis :obj:`basisStates`.
-        """
-        self.mat3 = []
-        """
-            off-diagonal elements of Zeeman-Matrix divided multiplied by magnetic
-            field value. Only relevant if Bz is not zero.
-            Full Stark matrix is obtained as
-            `fullStarkMatrix` = :obj:`mat1` + :obj:`mat2` *`eField` + :obj:`mat3`. Calculated by
+            `fullStarkMatrix` = :obj:`mat1` + :obj:`mat2` *`eField`. Calculated by
             :obj:`defineBasis` in the basis :obj:`basisStates`.
         """
         self.indexOfCoupledState = []
@@ -705,10 +697,7 @@ class StarkMap:
         second part :obj:`mat2` corresponds to off-diagonal elements that are
         propotional to electric field. Overall interaction matrix for
         electric field `eField` can be then obtained as
-        with Bz equal to zero:
         `fullStarkMatrix` = :obj:`mat1` + :obj:`mat2` *`eField`
-        with Bz not equal to zero:
-        `fullStarkMatrix` = :obj:`mat1` + :obj:`mat2` *`eField` + :obj:`mat3`
 
         Args:
             n (int): principal quantum number of the state
@@ -753,25 +742,14 @@ class StarkMap:
         self.Bz = Bz
         self.s = s
         # save calculation details END
-        if Bz==0:
-            for tn in xrange(nMin, nMax + 1):
-                for tl in xrange(min(maxL + 1, tn)):
-                    for tj in np.linspace(tl - s, tl + s, round(2 * s + 1)):
-                        if (abs(mj) - 0.1 <= tj) and (
-                            tn >= self.atom.groundStateN
-                            or [tn, tl, tj] in self.atom.extraLevels
-                        ):
-                            states.append([tn, tl, tj, mj])
-        else:
-            for tn in xrange(nMin, nMax + 1):
-                for tl in xrange(min(maxL + 1, tn)):
-                    for tj in np.linspace(tl - s, tl + s, round(2 * s + 1)):
-                        for tmj in np.linspace(mj-1,mj+1,round(2 * s + 2)): # we need a bit more mj states as we do not know ml                                
-                            if (abs(tmj) - 0.1 <= tj) and (
-                                tn >= self.atom.groundStateN
-                                or [tn, tl, tj] in self.atom.extraLevels
-                            ):
-                                states.append([tn, tl, tj, tmj])
+        for tn in xrange(nMin, nMax + 1):
+            for tl in xrange(min(maxL + 1, tn)):
+                for tj in np.linspace(tl - s, tl + s, round(2 * s + 1)):
+                    if (abs(mj) - 0.1 <= tj) and (
+                        tn >= self.atom.groundStateN
+                        or [tn, tl, tj] in self.atom.extraLevels
+                    ):
+                        states.append([tn, tl, tj, mj])
 
         dimension = len(states)
         if progressOutput:
@@ -798,8 +776,6 @@ class StarkMap:
 
         self.mat1 = np.zeros((dimension, dimension), dtype=np.double)
         self.mat2 = np.zeros((dimension, dimension), dtype=np.double)
-        if Bz!=0:
-            self.mat3 = np.zeros((dimension, dimension), dtype=np.double)
 
         self.basisStates = states
         self.indexOfCoupledState = indexOfCoupledState
@@ -837,6 +813,28 @@ class StarkMap:
             # add off-diagonal element
 
             for jj in xrange(ii + 1, dimension):
+                if (
+                    Bz != 0
+                    and states[ii][0] == states[jj][0]
+                    and states[ii][1] == states[jj][1]
+                    and abs(states[ii][3] - states[jj][3]) < 0.1
+                ):
+                    zeemanCoupling = (
+                        self.atom.getZeemanEnergyShiftOffDiagonal(
+                            states[ii][1],
+                            states[ii][2],
+                            states[ii][3],
+                            states[jj][2],
+                            states[jj][3],
+                            self.Bz,
+                            s=self.s,
+                        )
+                        / C_h
+                        * 1.0e-9
+                    )
+                    self.mat1[jj][ii] = zeemanCoupling
+                    self.mat1[ii][jj] = zeemanCoupling
+
                 coupling = (
                     self._eFieldCouplingDivE(
                         states[ii][0],
@@ -855,29 +853,10 @@ class StarkMap:
                 self.mat2[jj][ii] = coupling
                 self.mat2[ii][jj] = coupling
 
-                if Bz!=0:
-                    coupling2=0
-                    if states[ii][0]==states[jj][0] and states[ii][1]==states[jj][1]:
-                        coupling2 = self.atom.getZeemanEnergyShiftOffDiagonal(
-                            states[ii][1],
-                            states[ii][2],
-                            states[ii][3],
-                            states[jj][2],
-                            states[jj][3],
-                            self.Bz,
-                            s=self.s
-                        )/ C_h* 1.0e-9
-
-                    self.mat3[jj][ii] = coupling2
-                    self.mat3[ii][jj] = coupling2
-
         if progressOutput:
             print("\n")
         if debugOutput:
-            if Bz==0:
-                print(self.mat1 + self.mat2)
-            else:
-                print(self.mat1 + self.mat2 + self.mat3)
+            print(self.mat1 + self.mat2)
             print(self.mat2[0])
 
         self.atom.updateDipoleMatrixElementsFile()
@@ -1022,10 +1001,7 @@ class StarkMap:
                     "\r%d%%" % (float(progress) / float(len(eFieldList)) * 100)
                 )
                 sys.stdout.flush()
-            if self.Bz==0:
-                m = self.mat1 + self.mat2 * eField
-            else:
-                m = self.mat1 + self.mat2 * eField + self.mat3
+            m = self.mat1 + self.mat2 * eField
 
             ev, egvector = eigh(m)
 
@@ -1670,10 +1646,7 @@ class StarkMap:
             state[0], state[1], state[2], state[3], minN, maxN, maxL, Bz
         )
 
-        if Bz==0:
-            m = self.mat1 + self.mat2 * electricField
-        else:
-            m = self.mat1 + self.mat2 * electricField + self.mat3
+        m = self.mat1 + self.mat2 * electricField
         ev, egvector = eigh(m)
 
         # find which state in the electric field has strongest contribution

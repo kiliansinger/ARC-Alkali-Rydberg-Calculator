@@ -2679,7 +2679,7 @@ class AlkaliAtom(object):
                 ms = mj - ml
                 sumOverMl += (ml + gs * ms) * abs(CG(l, ml, s, ms, j, mj)) ** 2
         return prefactor * sumOverMl
-        
+
     def getZeemanEnergyShiftOffDiagonal(
         self,
         l: int,
@@ -2710,19 +2710,24 @@ class AlkaliAtom(object):
             Returns:
                 float: energy offset of the state (in J)
         """
+        if abs(mj1 - mj2) > 0.1:
+            return 0.0
+
         prefactor = physical_constants["Bohr magneton"][0] * magneticFieldBz
         gs = -physical_constants["electron g factor"][0]
-        sumOverMl = 0
+        sumOverMl = 0.0
 
-        for ml1 in np.linspace(mj1 - s, mj1 + s, round(2 * s + 1)):
-            for ml2 in np.linspace(mj2 - s, mj2 + s, round(2 * s + 1)):
-                if abs(ml1) <= l + 0.1 and abs(ml2) <= l + 0.1:
-                    ms1 = mj1 - ml1
-                    ms2 = mj2 - ml2
-                    if(ms1==ms2 and ml1==ml2):
-                        sumOverMl += (ml1 + gs * ms1) * CG(l, ml1, s, ms1, j1, mj1)*CG(l, ml1, s, ms1, j2, mj2)
+        for ml in np.linspace(mj1 - s, mj1 + s, round(2 * s + 1)):
+            if abs(ml) <= l + 0.1:
+                ms = mj1 - ml
+                if abs(ms) <= s + 0.1:
+                    sumOverMl += (
+                        (self.gL * ml + gs * ms)
+                        * CG(l, ml, s, ms, j1, mj1)
+                        * CG(l, ml, s, ms, j2, mj2)
+                    )
         return prefactor * sumOverMl
-    
+
     def _getRadialDipoleSemiClassical(
         self,
         n1: int,

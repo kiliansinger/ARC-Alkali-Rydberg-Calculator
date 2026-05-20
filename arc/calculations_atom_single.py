@@ -857,7 +857,7 @@ class StarkMap:
 
                 if Bz!=0:
                     coupling2=0
-                    if states[ii][0]==states[jj][0] and states[ii][1]==states[jj][1]:
+                    if abs(states[ii][0]-states[jj][0])<0.1 and abs(states[ii][1]-states[jj][1])<0.1:
                         coupling2 = self.atom.getZeemanEnergyShiftOffDiagonal(
                             states[ii][1],
                             states[ii][2],

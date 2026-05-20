@@ -2719,7 +2719,7 @@ class AlkaliAtom(object):
                 if abs(ml1) <= l + 0.1 and abs(ml2) <= l + 0.1:
                     ms1 = mj1 - ml1
                     ms2 = mj2 - ml2
-                    if(ms1==ms2 and ml1==ml2):
+                    if(abs(ms1-ms2)<0.1 and abs(ml1-ml2)<0.1):
                         sumOverMl += (ml1 + gs * ms1) * CG(l, ml1, s, ms1, j1, mj1)*CG(l, ml1, s, ms1, j2, mj2)
         return prefactor * sumOverMl
     

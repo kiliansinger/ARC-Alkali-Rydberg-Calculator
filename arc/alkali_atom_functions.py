@@ -2717,15 +2717,6 @@ class AlkaliAtom(object):
         gs = -physical_constants["electron g factor"][0]
         sumOverMl = 0.0
 
-<<<<<<< HEAD
-        for ml1 in np.linspace(mj1 - s, mj1 + s, round(2 * s + 1)):
-            for ml2 in np.linspace(mj2 - s, mj2 + s, round(2 * s + 1)):
-                if abs(ml1) <= l + 0.1 and abs(ml2) <= l + 0.1:
-                    ms1 = mj1 - ml1
-                    ms2 = mj2 - ml2
-                    if(abs(ms1-ms2)<0.1 and abs(ml1-ml2)<0.1):
-                        sumOverMl += (ml1 + gs * ms1) * CG(l, ml1, s, ms1, j1, mj1)*CG(l, ml1, s, ms1, j2, mj2)
-=======
         for ml in np.linspace(mj1 - s, mj1 + s, round(2 * s + 1)):
             if abs(ml) <= l + 0.1:
                 ms = mj1 - ml
@@ -2735,7 +2726,6 @@ class AlkaliAtom(object):
                         * CG(l, ml, s, ms, j1, mj1)
                         * CG(l, ml, s, ms, j2, mj2)
                     )
->>>>>>> 0162ccc3e641384c62f84026ae63de8733bfe494
         return prefactor * sumOverMl
 
     def _getRadialDipoleSemiClassical(
